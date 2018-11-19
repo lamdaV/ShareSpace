@@ -8,12 +8,32 @@ const bodyParser = require("body-parser");
 const compression = require("compression");
 const expressValidator = require("express-validator");
 const axios = require("axios");
-const { query, validationResult } = require("express-validator/check");
+const { body, query, cookie, validationResult } = require("express-validator/check");
 const { sanitizeQuery } = require("express-validator/filter");
+const firebase = require("firebase");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 
 const app = express();
 const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
 const dbx = new Dropbox({fetch, accessToken});
+
+firebase.initializeApp({
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID
+});
+const db = firebase.firestore();
+db.settings({
+  timestampsInSnapshots: true
+});
+const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS);
+const JWT_SECRET = process.env.JWT_SECRET;
+const COOKIE_SIGNATURE = process.env.COOKIE_SIGNATURE;
 
 app.set("host", process.env.HOST || "localhost");
 app.set("port", process.env.PORT || 8080);
@@ -22,6 +42,7 @@ app.use(expressStatusMonitor());
 app.use(expressValidator());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser(COOKIE_SIGNATURE));
 app.use(compression());
 
 const OK = 200;
@@ -36,36 +57,158 @@ app.all("*", (request, response, next) => {
   request.header("Accept", "application/json");
   request.header("Accept-Language", "en-US");
 
-  console.log(`${request.method} ${request.originalUrl} hit with: query => ${JSON.stringify(request.query)} body => ${JSON.stringify(request.body)}`);
+  console.log(`${request.method} ${request.originalUrl} hit with: query => ${JSON.stringify(request.query)} body => ${JSON.stringify(request.body)} cookie => ${JSON.stringify(request.cookies)}`);
 
   next();
 });
 
-const usernameValidation = [
-  query("username")
+const sendJWT = (response, token) => {
+  return response.cookie("jwt", token, {maxAge: 30 * 60 * 1000})
+    .status(OK)
+    .send();
+}
+const serverError = (response, error) => {
+  console.error(error);
+  return response.status(SERVER_ERROR)
+    .send({errors: [error.message]});
+}
+const authValidation = [
+  body("username")
     .exists()
-    .withMessage("Missing Stock Symbol")
+    .withMessage("Missing username")
     .isString()
-    .withMessage("Symbol must be a String")
+    .withMessage("username is not a string")
     .not().isEmpty()
-    .withMessage("Symbol cannot be empty"),
-  sanitizeQuery("symbol")
-    .customSanitizer((symbol) => symbol.toLowerCase())
+    .withMessage("username is empty"),
+  body("password")
+    .exists()
+    .withMessage("Missing password")
+    .isString()
+    .withMessage("password is not a string")
+    .not().isEmpty()
+    .withMessage("password is empty")
 ];
-app.get("/user/list", usernameValidation, (request, response) => {
+app.post("/api/register", authValidation, (request, response) => {
   const errors = validationResult(request);
   if (!errors.isEmpty()) {
     return response.status(CLIENT_ERRROR)
       .json({errors: errors.array()});
   }
 
-  const username = request.query.username;
-  dbx.filesListFolder({path: `/${username}`})
-    .then((res) => response.status(OK).send(res.entries))
-    .catch((error) => response.status(SERVER_ERROR).send({errors: error.error}));
+  const username = request.body.username;
+  const password = request.body.password;
+
+  const usersCollection = db.collection("users");
+  usersCollection
+    .where("username", "==", username)
+    .get()
+    .then((snapshot) => {
+      if (snapshot.empty) {
+        bcrypt.hash(password, SALT_ROUNDS)
+          .then((hashword) => {
+            usersCollection.add({username, hashword})
+              .then((userRef) => {
+                dbx.filesCreateFolderV2({path: `/${username}`})
+                  .then((result) => {
+                    const token = jwt.sign({username}, JWT_SECRET)
+                    return sendJWT(response, token);
+                  })
+                  .catch((error) => {
+                    return serverError(response, error);
+                  })
+              })
+              .catch((error) => {
+                return serverError(response, error);
+              });
+          })
+          .catch((error) => {
+            return serverError(response, error);
+          })
+      } else {
+        response.status(CLIENT_ERRROR)
+          .json({message: "username taken"});
+      }
+    })
 });
 
-dbx.upload
+
+const failLogin = (response) => {
+  return response.status(CLIENT_ERRROR)
+    .send("invlaid username or password");
+}
+app.post("/api/login", authValidation, (request, response) => {
+  const errors = validationResult(request);
+  if (!errors.isEmpty()) {
+    return response.status(CLIENT_ERRROR)
+      .json({errors: errors.array()});
+  }
+
+  const username = request.body.username;
+  const password = request.body.password;
+
+  const usersCollection = db.collection("users");
+  usersCollection.where("username", "==", username)
+    .get()
+    .then((snapshot) => {
+      if (!snapshot.empty) {
+        if (snapshot.size === 1) {
+          snapshot.forEach((userRef) => {
+            const user = userRef.data();
+            bcrypt.compare(password, user.hashword)
+              .then((result) => {
+                if (result) {
+                  const token = jwt.sign({username}, JWT_SECRET)
+                  return sendJWT(response, token);
+                } else {
+                  return failLogin(response);
+                }
+              })
+              .catch((error) => {
+                return serverError(response, error);
+              })
+          });
+        } else {
+          // username is not unique
+          return failLogin(response);
+        }
+      } else {
+        // No user with username
+        return failLogin(response);
+      }
+    })
+    .catch((error) => {
+      return serverError(response, error);
+    })
+});
+
+const jwtValidation = [
+  cookie("jwt")
+    .exists()
+    .withMessage("Missing jwt cookie")
+    .isString()
+    .withMessage("jwt must be a String")
+    .not().isEmpty()
+    .withMessage("jwt cannot be empty")
+];
+app.get("/api/user/list", jwtValidation, (request, response) => {
+  const errors = validationResult(request);
+  if (!errors.isEmpty()) {
+    return response.status(CLIENT_ERRROR)
+      .json({errors: errors.array()});
+  }
+
+  const token = request.cookies.jwt;
+  jwt.verify(token, JWT_SECRET, (error, payload) => {
+    if (error) {
+      return request.status(CLIENT_ERRROR)
+        .json({errors: [error.message]});
+    }
+    const username = payload.username;
+    dbx.filesListFolder({path: `/${username}`})
+      .then((res) => response.status(OK).send(res.entries))
+      .catch((error) => response.status(SERVER_ERROR).send({errors: error.error}));
+  });
+});
 
 if (process.env.NODE_ENV !== "production") {
   app.use(errorhandler());
