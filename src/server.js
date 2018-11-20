@@ -77,7 +77,7 @@ const sendJWT = (response, token) => {
 const serverError = (response, error) => {
   console.error(error);
   return response.status(SERVER_ERROR)
-    .send({errors: [error.message]});
+    .send({errors: [{msg: error.message}]});
 }
 const authValidation = [
   body("username")
@@ -137,7 +137,7 @@ app.post("/api/register", authValidation, (request, response) => {
       } else {
         // non-unique username
         response.status(CLIENT_ERRROR)
-          .json({message: "username taken"});
+          .json({errors: [{msg: "username taken"}]});
       }
     })
 });
@@ -145,7 +145,7 @@ app.post("/api/register", authValidation, (request, response) => {
 
 const failLogin = (response) => {
   return response.status(CLIENT_ERRROR)
-    .send("invlaid username or password");
+    .json({errors: [{msg: "invalid username or password"}]});
 }
 app.post("/api/login", authValidation, (request, response) => {
   const errors = validationResult(request);
@@ -327,9 +327,51 @@ app.delete("/api/user/delete", jwtValidation.concat(requiredPathValidation), (re
 
     dbx.filesDeleteV2({path})
       .then((file) => response.status(OK).send())
-      .catch((error) => response.status(SERVER_ERROR).send())
+      .catch((error) => serverError(response, error))
   });
 })
+
+const renameValidation = [
+  body("oldPath")
+    .exists()
+    .withMessage("missing oldPath body")
+    .isString()
+    .withMessage("oldPath is not a string")
+    .not().isEmpty()
+    .withMessage("oldPath is empty"),
+  body("newPath")
+    .exists()
+    .withMessage("missing newPath body")
+    .isString()
+    .withMessage("newPath is not a string")
+    .not().isEmpty()
+    .withMessage("newPath is empty")
+]
+app.post("/api/user/rename", jwtValidation.concat(renameValidation), (request, response) => {
+  const errors = validationResult(request);
+  if (!errors.isEmpty()) {
+    return response.status(CLIENT_ERRROR)
+      .json({errors: errors.array()});
+  }
+
+  const token = request.cookies.jwt;
+  jwt.verify(token, JWT_SECRET, (error, payload) => {
+    if (error) {
+      return clearJWT(response);
+    }
+
+    const username = payload.username;
+    const oldPath = request.body.oldPath;
+    const newPath = request.body.newPath;
+    if (!(oldPath.startsWith(`/${username}`) && newPath.startsWith(`/${username}`))) {
+      return clearJWT(response);
+    }
+
+    dbx.filesMoveV2({autorename: true, from_path: oldPath, to_path: newPath})
+      .then((res) => response.status(OK).send(res))
+      .catch((error) => serverError(response, error))
+  })
+});
 
 if (process.env.NODE_ENV !== "production") {
   app.use(errorhandler());

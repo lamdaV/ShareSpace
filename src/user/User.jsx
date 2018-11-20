@@ -1,22 +1,17 @@
 import React, { Component } from "react";
 import { 
-  Button,
+  Col,
   Container,
   ListGroup,
   ListGroupItem,
   Breadcrumb,
   BreadcrumbItem,
-  Row,
-  Col,
-  Card,
-  CardHeader,
-  CardBody,
-  CardFooter,
-  Badge,
-  Nav
+  Row
 } from "reactstrap";
-import { Redirect } from "react-router-dom";
+import { Redirect, Link } from "react-router-dom";
 import { saveAs } from "file-saver";
+import qs from "query-string";
+import FileCard from "./FileCard";
 
 class User extends Component {
   constructor(props) {
@@ -36,6 +31,7 @@ class User extends Component {
     this.handleOpen = this.handleOpen.bind(this);
     this.handleDownload = this.handleDownload.bind(this);
     this.handleDelete = this.handleDelete.bind(this);
+    this.handleSave = this.handleSave.bind(this);
 
     this.listFiles = this.listFiles.bind(this);
   };
@@ -47,51 +43,25 @@ class User extends Component {
   }
 
   createBreadCrumb(breadcrumb, index, list) {
+    const crumb = list.slice(0, index + 1);
+    const path = `/user?path=${crumb.join("/")}`;
+    const active = index === list.length - 1;
     return (
-      <BreadcrumbItem key={`bread ${index}`} active={index === list.length - 1}>{breadcrumb}</BreadcrumbItem>
+      <BreadcrumbItem tag={Link} to={path} key={`bread ${index}`} active={active}>
+        {breadcrumb}
+      </BreadcrumbItem>
     );
   }
 
   createFilesCard(file, index) {
-    let controls;
-    if (file[".tag"] === "folder") {
-      controls = (
-        <Row>
-          <Col>
-            <Button block color="primary" onClick={() => this.handleOpen(file)}>Open</Button>
-          </Col>
-        </Row>
-      )
-    } else {
-      controls = (
-        <Row>
-          <Col>
-            <Button block color="primary" onClick={() => this.handleDownload(file)}>Download</Button>
-          </Col>
-          <Col>
-            <Button block color="warning">Rename</Button>
-          </Col>
-          <Col>
-            <Button block color="danger" onClick={() => this.handleDelete(file)}>Delete</Button>
-          </Col>
-        </Row>
-      );
-    }
-    
     return (
       <Row key={`file ${index}`}>
         <Col>
-          <Card>
-            <CardHeader>{file.name}</CardHeader>
-            <CardBody>
-              {file[".tag"] ? <Badge color="info">{file[".tag"]}</Badge> : null}
-              {file.size ? <Badge color="primary">{file.size}B</Badge> : null}
-              {file.client_modified ? <Badge color="warning">{new Date(file.client_modified).toUTCString()}</Badge> : null}
-            </CardBody>
-            <CardFooter>
-              {controls}
-            </CardFooter>
-          </Card>
+          <FileCard handleOpen={this.handleOpen} 
+                    handleDownload={this.handleDownload} 
+                    handleDelete={this.handleDelete}
+                    handleSave={this.handleSave}
+                    file={file}/>
         </Col>
       </Row>
     );
@@ -111,6 +81,24 @@ class User extends Component {
   handleDelete(file) {
     this.props.service.delete(file.path_display)
       .then((res) => this.listFiles(file.path_display.substring(0, file.path_display.lastIndexOf("/"))))
+      .catch((error) => {
+        if (error.response) {
+          const errors = error.response.data.errors.map((err) => err.msg);
+          this.setState({errors: errors});
+        }
+      });
+  }
+
+  handleSave(file, newName) {
+    const oldPath = file.path_display.split("/");
+    oldPath[oldPath.length - 1] = newName;
+    const newPath = oldPath.join("/");
+    this.props.service.rename(file.path_display, newPath)
+      .then((res) => res.data)
+      .then((data) => {
+        const path = data.metadata.path_display.split("/");
+        this.listFiles(path.slice(0, path.length - 1).join("/"))
+      })
       .catch((error) => {
         if (error.response) {
           const errors = error.response.data;
@@ -136,9 +124,26 @@ class User extends Component {
     this.props.service.verify()
       .then((res) => {
         this.props.store.publish("auth", true);
-        this.listFiles();
+        const queries = qs.parse(this.props.location.search);
+        if (queries.path) {
+          this.listFiles(queries.path);
+        } else {
+          this.listFiles();
+        }
       })
-      .catch((error) => this.setState({toHome: true}));
+      .catch((error) => {
+        this.props.store.publish("auth", false);
+        this.setState({toHome: true});
+      })
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    if (prevProps.location.search !== this.props.location.search) {
+      const queries = qs.parse(this.props.location.search);
+      if (queries.path) {
+        this.listFiles(queries.path);
+      }
+    }
   }
 
   render() {

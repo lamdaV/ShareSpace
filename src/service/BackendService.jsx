@@ -35,6 +35,10 @@ class BackendService {
   delete(path) {
     return this.service.delete("/user/delete", {params: {path}});
   }
+
+  rename(oldPath, newPath) {
+    return this.service.post("/user/rename", {oldPath, newPath});
+  }
 }
 
 export default BackendService;
