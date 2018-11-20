@@ -6,6 +6,7 @@ import Logout from "./logout/Logout";
 import { Container, Row, Col } from "reactstrap";
 import BackendService from "./service/BackendService";
 import StateObserver from "./service/StateObserver";
+import User from "./user/User";
 
 class App extends Component {
   constructor(props) {
@@ -33,6 +34,7 @@ class App extends Component {
             <Col md="12">
               <Route path="/" exact render={(props) => <Home {...props} service={this.service} store={this.stateObserver}/>}/>
               <Route path="/logout" exact render={(props) => <Logout {...props} service={this.service} store={this.stateObserver}/>}/>
+              <Route path="/user" exact render={(props) => <User {...props} service={this.service} store={this.stateObserver}/>}/>
             </Col>
           </Row>
         </Container>

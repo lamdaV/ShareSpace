@@ -16,7 +16,6 @@ class Login extends Component {
     this.onUsernameChange = this.onUsernameChange.bind(this);
     this.onPasswordChange = this.onPasswordChange.bind(this);
     this.onLogin = this.onLogin.bind(this);
-    this.listFiles = this.listFiles.bind(this);
   }
 
   onUsernameChange(event) {
@@ -48,11 +47,6 @@ class Login extends Component {
       })
   }
 
-  listFiles(event) {
-    event.preventDefault();
-    this.service.listFiles();
-  }
-
   render() {
     let errorMessages = null;
     if (this.state.errors) {
@@ -79,7 +73,6 @@ class Login extends Component {
           </InputGroup>
           <br/>
           <Button color="primary" block onClick={this.onLogin}>Login</Button>
-          <Button color="primary" block onClick={this.listFiles}>ListFiles</Button>
         </CardBody>
       </Card>
     );

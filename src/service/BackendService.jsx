@@ -21,8 +21,19 @@ class BackendService {
     return this.service.get("/logout");
   }
 
-  listFiles() {
+  listFiles(path = null) {
+    if (path) {
+      return this.service.get("/user/list", {params: {path}});
+    }
     return this.service.get("/user/list");
+  }
+
+  download(path) {
+    return this.service.get("/user/download", {params: {path}, responseType: "blob"});
+  }
+
+  delete(path) {
+    return this.service.delete("/user/delete", {params: {path}});
   }
 }
 

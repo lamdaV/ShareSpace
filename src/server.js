@@ -15,6 +15,7 @@ const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
+const fs = require("fs");
 
 const app = express();
 const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
@@ -227,7 +228,12 @@ app.get("/api/logout", jwtValidation, (request, response) => {
   return clearJWT(response, OK);
 });
 
-app.get("/api/user/list", jwtValidation, (request, response) => {
+const pathValidation = [
+  query("path")
+    .optional()
+    .isString()
+];
+app.get("/api/user/list", jwtValidation.concat(pathValidation), (request, response) => {
   const errors = validationResult(request);
   if (!errors.isEmpty()) {
     return response.status(CLIENT_ERRROR)
@@ -239,12 +245,91 @@ app.get("/api/user/list", jwtValidation, (request, response) => {
     if (error) {
       return clearJWT(response);
     }
+
+    const path = request.query.path;
     const username = payload.username;
-    dbx.filesListFolder({path: `/${username}`})
-      .then((res) => response.status(OK).send(res.entries))
-      .catch((error) => response.status(SERVER_ERROR).send({errors: error.error}));
+    let fullPath;
+    if (path) {
+      if (path.startsWith(`/${username}`)) {
+        fullPath = path;
+      } else if (path.startsWith("/")) {
+        fullPath = `/${username}${path}`;
+      } else {
+        fullPath = `/${username}/${path}`;
+      }
+    } else {
+      fullPath = `/${username}`;
+    }
+    dbx.filesListFolder({path: fullPath})
+      .then((res) => {
+        response.status(OK)
+          .json({files: res.entries, breadcrumb: fullPath.split("/")})
+      })
+      .catch((error) => response.status(SERVER_ERROR).json({errors: error.error}));
   });
 });
+
+const requiredPathValidation = [
+  query("path")
+    .exists()
+    .withMessage("path query is missing")
+    .isString()
+    .withMessage("path query is not a string")
+    .not().isEmpty()
+    .withMessage("path query is empty")
+];
+app.get("/api/user/download", jwtValidation.concat(requiredPathValidation), (request, response) => {
+  const errors = validationResult(request);
+  if (!errors.isEmpty()) {
+    return response.status(CLIENT_ERRROR)
+      .json({errors: errors.array()});
+  }
+
+  const token = request.cookies.jwt;
+  jwt.verify(token, JWT_SECRET, (error, payload) => {
+    if (error) {
+      return clearJWT(response);
+    }
+
+    const username = payload.username;
+    const path = request.query.path;
+    if (!path.startsWith(`/${username}`)) {
+      return clearJWT(response);
+    }
+
+    dbx.filesDownload({path})
+      .then((file) => {
+        return response.status(OK)
+          .send(file.fileBinary);
+      })
+      .catch((error) => serverError(response, error))
+  });
+});
+
+app.delete("/api/user/delete", jwtValidation.concat(requiredPathValidation), (request, response) => {
+  const errors = validationResult(request);
+  if (!errors.isEmpty()) {
+    return response.status(CLIENT_ERRROR)
+      .json({errors: errors.array});
+  }
+
+  const token = request.cookies.jwt;
+  jwt.verify(token, JWT_SECRET, (error, payload) => {
+    if (error) {
+      return clearJWT(response);
+    }
+
+    const username = payload.username;
+    const path = request.query.path;
+    if (!path.startsWith(`/${username}`)) {
+      return clearJWT(response);
+    }
+
+    dbx.filesDeleteV2({path})
+      .then((file) => response.status(OK).send())
+      .catch((error) => response.status(SERVER_ERROR).send())
+  });
+})
 
 if (process.env.NODE_ENV !== "production") {
   app.use(errorhandler());
