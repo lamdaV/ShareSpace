@@ -1,6 +1,6 @@
 import React, { Component } from "react";
+import { Redirect } from "react-router-dom";
 import { Alert, Card, CardBody, CardHeader, Input, InputGroup, InputGroupAddon, Button } from "reactstrap";
-import BackendService from "../service/BackendService";
 
 class Login extends Component {
   constructor(props) {
@@ -9,10 +9,9 @@ class Login extends Component {
     this.state = {
       username: "",
       password: "",
-      errors: []
+      errors: [],
+      toUserPage: false
     }
-
-    this.service = new BackendService(process.env.REACT_APP_API_ENDPOINT);
 
     this.onUsernameChange = this.onUsernameChange.bind(this);
     this.onPasswordChange = this.onPasswordChange.bind(this);
@@ -34,14 +33,18 @@ class Login extends Component {
 
   onLogin(event) {
     event.preventDefault();
-    this.service.login(this.state.username, this.state.password)
-      .then((res) => this.setState({errors: []}))
+    this.props.service.login(this.state.username, this.state.password)
+      .then((res) => {
+        this.setState({errors: [], toUserPage: true})
+        this.props.store.publish("auth", true);
+      })
       .catch((error) => {
         if (error.response) {
           const errors = error.response.data.errors;
           const messages = errors.map((err) => err.msg)
           this.setState({errors: messages});
         }
+        this.props.store.publish("auth", false);
       })
   }
 
@@ -61,6 +64,7 @@ class Login extends Component {
     }
     return (
       <Card>
+        {this.state.toUserPage ? <Redirect to="/user"/> : null}
         <CardHeader>Login</CardHeader>
         <CardBody>
           {errorMessages}

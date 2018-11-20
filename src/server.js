@@ -14,6 +14,7 @@ const firebase = require("firebase");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const cors = require("cors");
 
 const app = express();
 const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
@@ -42,6 +43,10 @@ app.use(expressStatusMonitor());
 app.use(expressValidator());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(cookieParser(COOKIE_SIGNATURE));
 app.use(compression());
 
@@ -50,9 +55,10 @@ const CLIENT_ERRROR = 404;
 const SERVER_ERROR = 500
 
 app.all("*", (request, response, next) => {
-  response.header("Access-Control-Allow-Origin", "*");
-  response.header("Access-Control-Allow-Methods", "OPTIONS, PUT, GET, POST");
-  response.header("Access-Control-Allow-Headers", "Content-Type");
+  // response.header("Access-Control-Allow-Origin", "*");
+  // response.header("Access-Control-Allow-Methods", "OPTIONS, PUT, GET, POST");
+  // response.header("Access-Control-Allow-Headers", "Content-Type");
+  // response.header("Access-Control-Allow-Credential", "true");
 
   request.header("Accept", "application/json");
   request.header("Accept-Language", "en-US");
@@ -63,7 +69,7 @@ app.all("*", (request, response, next) => {
 });
 
 const sendJWT = (response, token) => {
-  return response.cookie("jwt", token, {maxAge: 30 * 60 * 1000})
+  return response.cookie("jwt", token, {maxAge: 30 * 60 * 1000, httpOnly: true})
     .status(OK)
     .send();
 }
@@ -114,17 +120,21 @@ app.post("/api/register", authValidation, (request, response) => {
                     return sendJWT(response, token);
                   })
                   .catch((error) => {
+                    // failed to create folder
                     return serverError(response, error);
                   })
               })
               .catch((error) => {
+                // failed to add user
                 return serverError(response, error);
               });
           })
           .catch((error) => {
+            // failed to generate hashword
             return serverError(response, error);
           })
       } else {
+        // non-unique username
         response.status(CLIENT_ERRROR)
           .json({message: "username taken"});
       }
@@ -164,6 +174,7 @@ app.post("/api/login", authValidation, (request, response) => {
                 }
               })
               .catch((error) => {
+                // bcrypt error
                 return serverError(response, error);
               })
           });
@@ -177,10 +188,16 @@ app.post("/api/login", authValidation, (request, response) => {
       }
     })
     .catch((error) => {
+      // firebase error
       return serverError(response, error);
     })
 });
 
+const clearJWT = (response, status = CLIENT_ERRROR) => {
+  return response.status(status)
+    .clearCookie("jwt")
+    .send();
+}
 const jwtValidation = [
   cookie("jwt")
     .exists()
@@ -190,6 +207,26 @@ const jwtValidation = [
     .not().isEmpty()
     .withMessage("jwt cannot be empty")
 ];
+app.get("/api/verify", jwtValidation, (request, response) => {
+  const errors = validationResult(request);
+  if (!errors.isEmpty()) {
+    return clearJWT(response);
+  } else {
+    const token = request.cookies.jwt;
+    jwt.verify(token, JWT_SECRET, (error, payload) => {
+      if (error) {
+        return clearJWT(response);
+      } 
+      return response.status(OK)
+        .send();
+    })
+  }
+});
+
+app.get("/api/logout", jwtValidation, (request, response) => {
+  return clearJWT(response, OK);
+});
+
 app.get("/api/user/list", jwtValidation, (request, response) => {
   const errors = validationResult(request);
   if (!errors.isEmpty()) {
@@ -200,8 +237,7 @@ app.get("/api/user/list", jwtValidation, (request, response) => {
   const token = request.cookies.jwt;
   jwt.verify(token, JWT_SECRET, (error, payload) => {
     if (error) {
-      return request.status(CLIENT_ERRROR)
-        .json({errors: [error.message]});
+      return clearJWT(response);
     }
     const username = payload.username;
     dbx.filesListFolder({path: `/${username}`})

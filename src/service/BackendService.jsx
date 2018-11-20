@@ -2,7 +2,11 @@ import axios from "axios";
 
 class BackendService {
   constructor(endpoint) {
-    this.service = axios.create({baseURL: endpoint});
+    this.service = axios.create({baseURL: endpoint, withCredentials: true});
+  }
+
+  verify() {
+    return this.service.get("/verify");
   }
 
   register(username, password) {
@@ -10,8 +14,11 @@ class BackendService {
   }
 
   login(username, password) {
-    return this.service.post("/login", {username, password})
-      .then((res) => console.log(res));
+    return this.service.post("/login", {username, password});
+  }
+
+  logout() {
+    return this.service.get("/logout");
   }
 
   listFiles() {
