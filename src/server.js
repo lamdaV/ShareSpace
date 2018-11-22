@@ -56,11 +56,6 @@ const CLIENT_ERRROR = 404;
 const SERVER_ERROR = 500
 
 app.all("*", (request, response, next) => {
-  // response.header("Access-Control-Allow-Origin", "*");
-  // response.header("Access-Control-Allow-Methods", "OPTIONS, PUT, GET, POST");
-  // response.header("Access-Control-Allow-Headers", "Content-Type");
-  // response.header("Access-Control-Allow-Credential", "true");
-
   request.header("Accept", "application/json");
   request.header("Accept-Language", "en-US");
 

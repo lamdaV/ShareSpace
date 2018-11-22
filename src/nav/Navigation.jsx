@@ -26,7 +26,7 @@ class Navigation extends Component {
   render() {
     return (
       <Navbar light>
-        <NavbarBrand tag={Link} to={"/"}>Sharespace</NavbarBrand>
+        <NavbarBrand tag={Link} to={"/"}>SpaceShare</NavbarBrand>
         <Nav navbar>
           {this.state.auth 
             ? <NavItem>
