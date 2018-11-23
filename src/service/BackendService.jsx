@@ -39,6 +39,15 @@ class BackendService {
   rename(oldPath, newPath) {
     return this.service.post("/user/rename", {oldPath, newPath});
   }
+
+  upload(file, path) {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    if (path) {
+      formData.append("path", path);
+    }
+    return this.service.put("/user/upload", formData);
+  }
 }
 
 export default BackendService;

@@ -1,6 +1,9 @@
 import React, { Component } from "react";
-import { Navbar, NavbarBrand, Nav, NavItem, NavLink } from "reactstrap";
+import { Navbar, NavbarBrand, Nav, NavItem, NavLink, UncontrolledTooltip } from "reactstrap";
 import { Link } from "react-router-dom";
+import {
+  GoSignOut
+} from "react-icons/go";
 
 class Navigation extends Component {
   constructor(props) {
@@ -30,7 +33,12 @@ class Navigation extends Component {
         <Nav navbar>
           {this.state.auth 
             ? <NavItem>
-                <NavLink tag={Link} to="/logout">Logout</NavLink>
+                <NavLink tag={Link} to="/logout" id="logout">
+                  <GoSignOut/>
+                </NavLink>
+                <UncontrolledTooltip placement="left" target="logout">
+                  Logout
+                </UncontrolledTooltip>
               </NavItem>
             : null}
         </Nav>

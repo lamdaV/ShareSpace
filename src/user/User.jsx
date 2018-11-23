@@ -1,17 +1,23 @@
 import React, { Component } from "react";
 import { 
+  Breadcrumb,
+  BreadcrumbItem,
   Col,
   Container,
   ListGroup,
   ListGroupItem,
-  Breadcrumb,
-  BreadcrumbItem,
-  Row
+  Jumbotron,
+  Row,
+  UncontrolledTooltip
 } from "reactstrap";
-import { Redirect, Link } from "react-router-dom";
+import { Link, Redirect } from "react-router-dom";
 import { saveAs } from "file-saver";
 import qs from "query-string";
 import FileCard from "./FileCard";
+import Dropzone from "react-dropzone";
+import {
+  GoPlus
+} from "react-icons/go";
 
 class User extends Component {
   constructor(props) {
@@ -27,11 +33,13 @@ class User extends Component {
     this.createErrorMessage = this.createErrorMessage.bind(this);
     this.createBreadCrumb = this.createBreadCrumb.bind(this);
     this.createFilesCard = this.createFilesCard.bind(this);
+    this.createDropzone = this.createDropzone.bind(this);
 
     this.handleOpen = this.handleOpen.bind(this);
     this.handleDownload = this.handleDownload.bind(this);
     this.handleDelete = this.handleDelete.bind(this);
     this.handleSave = this.handleSave.bind(this);
+    this.handleDrop = this.handleDrop.bind(this);
 
     this.listFiles = this.listFiles.bind(this);
   };
@@ -61,7 +69,26 @@ class User extends Component {
                     handleDownload={this.handleDownload} 
                     handleDelete={this.handleDelete}
                     handleSave={this.handleSave}
-                    file={file}/>
+                    file={file}
+                    id={index}/>
+          <br/>
+        </Col>
+      </Row>
+    );
+  }
+
+  createDropzone() {
+    return (
+      <Row>
+        <Col>
+          <Jumbotron>
+            <Dropzone onDrop={this.handleDrop} style={{textAlign: "center", width: "auto"}} id={`dropzone${this.props.id}`}>
+              <h1> <GoPlus/> </h1>
+            </Dropzone>
+            <UncontrolledTooltip placement="bottom" target={`dropzone${this.props.id}`}>
+              Drop-and-drop files here or click to add
+            </UncontrolledTooltip>
+          </Jumbotron>
         </Col>
       </Row>
     );
@@ -107,13 +134,26 @@ class User extends Component {
       });
   }
 
+  handleDrop(files) {
+    const path = qs.parse(this.props.location.search).path;
+    files.forEach((file) => {
+      this.props.service.upload(file, path)
+        .then((res) => this.listFiles(path))
+        .catch((error) => {
+          if (error.response) {
+            const errors = error.response.data.errors.map((err) => err.msg);
+            this.setState({errors});
+          }
+        });
+    });
+  }
+
   listFiles(path = null) {
     this.props.service.listFiles(path)
       .then((res) => res.data)
       .then((data) => this.setState({errors: [], breadcrumb: data.breadcrumb, files: data.files}))
       .catch((error) => {
         if (error.response) {
-          console.log(error.response)
           const errors = error.response.data.errors.map((err) => err.msg);
           this.setState({errors});
         }
@@ -158,6 +198,7 @@ class User extends Component {
             <ListGroup>
               {this.state.errors.map(this.createErrorMessage)}
             </ListGroup>
+            <br/>
           </Col>
         </Row>
       )
@@ -172,6 +213,7 @@ class User extends Component {
               {this.state.breadcrumb.map(this.createBreadCrumb)}
             </Breadcrumb>
           </Col>
+          <br/>
         </Row>
       )
     }
@@ -181,12 +223,14 @@ class User extends Component {
       files = this.state.files.map(this.createFilesCard);
     }
 
+    let dropzone = this.createDropzone();
 
     return (
       <Container>
         {messages}
         {breadcrumb}
         {files}
+        {dropzone}
       </Container>
     );
   }

@@ -15,7 +15,7 @@ const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
-const fs = require("fs");
+const fileUpload = require("express-fileupload");
 
 const app = express();
 const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
@@ -49,6 +49,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(cookieParser(COOKIE_SIGNATURE));
+app.use(fileUpload({
+  limits: { fileSize: 150 * 1024 }
+}));
 app.use(compression());
 
 const OK = 200;
@@ -365,7 +368,28 @@ app.post("/api/user/rename", jwtValidation.concat(renameValidation), (request, r
     dbx.filesMoveV2({autorename: true, from_path: oldPath, to_path: newPath})
       .then((res) => response.status(OK).send(res))
       .catch((error) => serverError(response, error))
-  })
+  });
+});
+
+app.put("/api/user/upload", jwtValidation, (request, response) => {
+  const errors = validationResult(request);
+  if (!errors.isEmpty()) {
+    return response.status(CLIENT_ERRROR)
+      .json({errors: errors.array()});
+  }
+
+  const token = request.cookies.jwt;
+  jwt.verify(token, JWT_SECRET, (error, payload) => {
+    if (error) {
+      return clearJWT(response);
+    }
+    
+    const filename = request.files.file.name;
+    const path = `${request.body.path}/${filename}` || `/${payload.username}/${filename}`;
+    dbx.filesUpload({autorename: true, contents: request.files.file.data, path, mute: true})
+      .then((res) => response.status(OK).send())
+      .catch((error) => serverError(response, error));
+  });
 });
 
 if (process.env.NODE_ENV !== "production") {
