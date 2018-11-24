@@ -34,14 +34,12 @@ by an `invite` code. A user can upload, rename, delete, or download files.
 - [x] User registration
 - [x] User session (JWT)
 - [x] Upload files
-~~- [ ] Upload folders~~
 - [x] Create folders
 - [x] Delete files
 - [x] Delete folders
 - [x] Rename files
 - [x] Rename folders
 - [x] Download files
-~~- [ ] Download folders (?)~~
 - [x] Invite code gating
 - [x] Connect to a User database
 
