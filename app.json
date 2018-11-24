@@ -62,16 +62,16 @@
       "value": "10"
     },
     "INVITE_CODE": {
-      "description": "Firebase API key",
+      "description": "Registration Gating Secret",
       "required": true,
       "generator": "secret"
     },
     "REACT_APP_API_ENDPOINT": {
-      "description": "Firebase API key",
+      "description": "Endpoint to API server ending with '/api'",
       "required": true 
     },
     "REACT_APP_BRAND": {
-      "description": "Firebase API key",
+      "description": "Navigation Branding",
       "required": true,
       "value": "SpaceShare"
     }
