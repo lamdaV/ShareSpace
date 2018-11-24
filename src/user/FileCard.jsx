@@ -96,6 +96,15 @@ class FileCard extends Component {
             {this.state.rename}
           </Button>
         </Col>
+        <Col>
+          <Button block 
+                  color="danger"
+                  onClick={() => this.props.handleDelete(this.props.file)}
+                  onMouseOver={(event) => this.showButtonLabel(event, "delete")}
+                  onMouseOut={(event) => this.hideButtonLabel(event, "delete")}>
+            {this.state.delete}
+          </Button>    
+        </Col>
       </Row>
     );
   }
