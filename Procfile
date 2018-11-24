@@ -1,1 +1,1 @@
-web: yarn api-server
+web: yarn api-serve
