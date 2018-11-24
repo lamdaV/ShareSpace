@@ -66,13 +66,6 @@ app.all("*", (request, response, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, "..", "build"), {maxAge: "1w"}));
-app.get("*", (request, response) => {
-  response.status(OK)
-    .type("html")
-    .sendFile(path.join(__dirname, "..", "build"), "index.html");
-});
-
 const sendJWT = (response, token) => {
   return response.cookie("jwt", token, {maxAge: 30 * 60 * 1000, httpOnly: true})
     .status(OK)
@@ -467,6 +460,13 @@ app.put("/api/user/directory", jwtValidation.concat(directoryCreateValidation).c
       .then((res) => response.status(OK).send(res))
       .catch((error) => serverError(response, error));
   });
+});
+
+app.use(express.static(path.join(__dirname, "..", "build"), {maxAge: "1w"}));
+app.get("*", (request, response) => {
+  response.status(OK)
+    .type("html")
+    .sendFile(path.join(__dirname, "..", "build"), "index.html");
 });
 
 if (process.env.NODE_ENV !== "production") {
