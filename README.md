@@ -1,6 +1,8 @@
 # ShareSpace
 Sharing unused Dropbox space for family and friends.
 
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/lamdaV/ShareSpace/tree/master)
+
 ## Motivations
 I use Dropbox as my primary Cloud storage prvoider to store files and
 documents for easy access across multiple machines. Unfortunately, 
