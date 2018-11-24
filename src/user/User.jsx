@@ -2,11 +2,11 @@ import React, { Component } from "react";
 import { 
   Breadcrumb,
   BreadcrumbItem,
+  Button,
   Col,
   Container,
   ListGroup,
   ListGroupItem,
-  Jumbotron,
   Row,
   UncontrolledTooltip
 } from "reactstrap";
@@ -69,8 +69,7 @@ class User extends Component {
                     handleDownload={this.handleDownload} 
                     handleDelete={this.handleDelete}
                     handleSave={this.handleSave}
-                    file={file}
-                    id={index}/>
+                    file={file}/>
           <br/>
         </Col>
       </Row>
@@ -78,17 +77,18 @@ class User extends Component {
   }
 
   createDropzone() {
+    const id = `dropzone${Date.now()}`;
     return (
       <Row>
         <Col>
-          <Jumbotron>
-            <Dropzone onDrop={this.handleDrop} style={{textAlign: "center", width: "auto"}} id={`dropzone${this.props.id}`}>
+          <Button block color="primary">
+            <Dropzone onDrop={this.handleDrop} style={{textAlign: "center", width: "auto"}} id={id}>
               <h1> <GoPlus/> </h1>
             </Dropzone>
-            <UncontrolledTooltip placement="bottom" target={`dropzone${this.props.id}`}>
+            <UncontrolledTooltip placement="bottom" target={id}>
               Drop-and-drop files here or click to add
             </UncontrolledTooltip>
-          </Jumbotron>
+          </Button>
         </Col>
       </Row>
     );

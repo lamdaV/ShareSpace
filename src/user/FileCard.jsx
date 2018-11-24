@@ -8,12 +8,12 @@ import {
   CardFooter, 
   Col, 
   Input,
-  Row,
-  UncontrolledTooltip
+  Row
 } from "reactstrap";
 import { Link } from "react-router-dom";
 import { 
   GoArchive,
+  GoCircleSlash,
   GoCloudDownload,
   GoPencil,
   GoFileSymlinkDirectory,
@@ -26,19 +26,126 @@ class FileCard extends Component {
 
     this.state = {
       renameToggle: false,
-      fileName: this.props.file.name
-    }
+      fileName: this.props.file.name,
+      rename: <GoPencil/>,
+      cancel: <GoCircleSlash/>,
+      save: <GoArchive/>,
+      open: <GoFileSymlinkDirectory/>,
+      download: <GoCloudDownload/>,
+      delete: <GoTrashcan/>
+    };
+
+    this.createRenameControl = this.createRenameControl.bind(this);
+    this.createFolderControl = this.createFolderControl.bind(this);
+    this.createFileControl = this.createFileControl.bind(this);
 
     this.handleRename = this.handleRename.bind(this);
+    this.handleCancel = this.handleCancel.bind(this);
     this.handleSave = this.handleSave.bind(this);
     this.handleInput = this.handleInput.bind(this);
+
+    this.showButtonLabel = this.showButtonLabel.bind(this);
+    this.hideButtonLabel = this.hideButtonLabel.bind(this);
   }
 
-  handleRename() {
+  createRenameControl() {
+    return (
+      <Row>
+        <Col>
+          <Button block 
+                  color="success" 
+                  onClick={this.handleSave}
+                  onMouseOver={(event) => this.showButtonLabel(event, "save")}
+                  onMouseOut={(event) => this.hideButtonLabel(event, "save")}>
+            {this.state.save}
+          </Button>
+        </Col>
+        <Col>
+          <Button block 
+                  color="danger" 
+                  onClick={this.handleCancel}
+                  onMouseOver={(event) => this.showButtonLabel(event, "cancel")}
+                  onMouseOut={(event) => this.hideButtonLabel(event, "cancel")}>
+            {this.state.cancel}
+          </Button>
+        </Col>
+      </Row>
+    );
+  }
+
+  createFolderControl() {
+    const linkTo = `/user?path=${this.props.file.path_display}`;
+    return (
+      <Row>
+        <Col>
+          <Button block 
+                  color="primary" 
+                  tag={Link} 
+                  to={linkTo}
+                  onMouseOver={(event) => this.showButtonLabel(event, "open")}
+                  onMouseOut={(event) => this.hideButtonLabel(event, "open")}>
+            {this.state.open}
+          </Button>
+        </Col>
+        <Col>
+          <Button block
+                    color="warning" 
+                    onClick={this.handleRename} 
+                    onMouseOver={(event) => this.showButtonLabel(event, "rename")}
+                    onMouseOut={(event) => this.hideButtonLabel(event, "rename")}>
+            {this.state.rename}
+          </Button>
+        </Col>
+      </Row>
+    );
+  }
+
+  createFileControl() {
+    return (
+      <Row>
+        <Col>
+          <Button block
+                  color="primary" 
+                  onClick={() => this.props.handleDownload(this.props.file)}
+                  onMouseOver={(event) => this.showButtonLabel(event, "download")}
+                  onMouseOut={(event) => this.hideButtonLabel(event, "download")}>
+            {this.state.download}
+          </Button>
+        </Col>
+        <Col>
+          <Button block
+                  color="warning" 
+                  onClick={this.handleRename} 
+                  onMouseOver={(event) => this.showButtonLabel(event, "rename")}
+                  onMouseOut={(event) => this.hideButtonLabel(event, "rename")}>
+            {this.state.rename}
+          </Button>
+        </Col>
+        <Col>
+          <Button block 
+                  color="danger"
+                  onClick={() => this.props.handleDelete(this.props.file)}
+                  onMouseOver={(event) => this.showButtonLabel(event, "delete")}
+                  onMouseOut={(event) => this.hideButtonLabel(event, "delete")}>
+            {this.state.delete}
+          </Button>    
+        </Col>
+      </Row>
+    );
+  }
+
+  handleRename(event) {
+    event.preventDefault();
     this.setState({renameToggle: true});
   }
 
-  handleSave() {
+  handleCancel(event) {
+    event.preventDefault();
+    this.setState({renameToggle: false, fileName: this.props.file.name});
+  }
+
+  handleSave(event) {
+    event.preventDefault();
     this.setState({renameToggle: false});
     this.props.handleSave(this.props.file, this.state.fileName);
   }
@@ -46,6 +153,58 @@ class FileCard extends Component {
   handleInput(event) {
     event.preventDefault();
     this.setState({fileName: event.currentTarget.value});
+  }
+
+  showButtonLabel(event, type) {
+    event.preventDefault();
+    switch (type) {
+      case "rename":
+        this.setState({rename: "Rename"});
+        break;
+      case "cancel":
+        this.setState({cancel: "Cancel"});
+        break;
+      case "save":
+        this.setState({save: "Save"});
+        break;
+      case "open":
+        this.setState({open: "Open"});
+        break;
+      case "download":
+        this.setState({download: "Download"});
+        break;
+      case "delete":
+        this.setState({delete: "Delete"});
+        break;
+      default:
+        break
+    }
+  }
+
+  hideButtonLabel(event, type) {
+    event.preventDefault();
+    switch (type) {
+      case "rename":
+        this.setState({rename: <GoPencil/>});
+        break;
+      case "cancel":
+        this.setState({cancel: <GoCircleSlash/>});
+        break;
+      case "save":
+        this.setState({save: <GoArchive/>});
+        break;
+      case "open":
+        this.setState({open: <GoFileSymlinkDirectory/>});
+        break;
+      case "download":
+        this.setState({download: <GoCloudDownload/>});
+        break;
+      case "delete":
+        this.setState({delete: <GoTrashcan/>});
+        break;
+      default:
+        break
+    }
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {
@@ -56,94 +215,12 @@ class FileCard extends Component {
 
   render() {
     let controls;
-    const renameTarget = `renameButton${this.props.id}`;
     if (this.state.renameToggle) {
-      const saveTarget = `saveButton${this.props.id}`;
-      controls = (
-        <Row>
-          <Col>
-            <Button block 
-                    color="success" 
-                    onClick={this.handleSave}
-                    id={saveTarget}>
-              <GoArchive/>
-            </Button>
-            <UncontrolledTooltip placement="top" target={saveTarget}>
-              Save
-            </UncontrolledTooltip>
-          </Col>
-        </Row>
-      )
+      controls = this.createRenameControl();
     } else if (this.props.file[".tag"] === "folder") {
-      const linkTo = `/user?path=${this.props.file.path_display}`;
-      const openTarget = `openButton${this.props.id}`;
-      controls = (
-        <Row>
-          <Col>
-            <Button block 
-                    color="primary" 
-                    tag={Link} 
-                    to={linkTo}
-                    id={openTarget}>
-              <GoFileSymlinkDirectory/>
-            </Button>
-            <UncontrolledTooltip placement="top" target={openTarget}>
-              Open
-            </UncontrolledTooltip>
-          </Col>
-          <Col>
-            <Button block
-                      color="warning" 
-                      onClick={() => this.handleRename()} 
-                      id={renameTarget}>
-                <GoPencil/>
-            </Button>
-            <UncontrolledTooltip placement="top" target={renameTarget}>
-              Rename
-            </UncontrolledTooltip>
-          </Col>  
-        </Row>
-      )
+      controls = this.createFolderControl();
     } else {
-      const downloadTarget = `downloadButton${this.props.id}`;
-      const deleteTarget = `deleteButton${this.props.id}`;
-      controls = (
-        <Row>
-          <Col>
-            <Button block
-                    color="primary" 
-                    onClick={() => this.props.handleDownload(this.props.file)}
-                    id={downloadTarget}>
-              <GoCloudDownload/>
-            </Button>
-            <UncontrolledTooltip placement="top" target={downloadTarget}>
-              Download
-            </UncontrolledTooltip>
-          </Col>
-          <Col>
-            <Button block
-                    color="warning" 
-                    onClick={() => this.handleRename()} 
-                    id={renameTarget}>
-              <GoPencil/>
-            </Button>
-            <UncontrolledTooltip placement="top" target={renameTarget}>
-              Rename
-            </UncontrolledTooltip>
-          </Col>
-          <Col>
-            <Button block 
-                    color="danger"
-                    onClick={() => this.props.handleDelete(this.props.file)}
-                    id={deleteTarget}>
-              <GoTrashcan/>
-            </Button>
-            <UncontrolledTooltip placement="top" target={deleteTarget}>
-              Delete
-            </UncontrolledTooltip>
-          </Col>
-        </Row>
-      );
+      controls = this.createFileControl();
     }
 
     let header;
