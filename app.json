@@ -1,0 +1,79 @@
+{
+  "name": "ShareSpace",
+  "description": "Share unused Dropbox Space",
+  "repository": "https://github.com/lamdaV/ShareSpace",
+  "buildpacks": [
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-nodejs"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1
+    }
+  },
+  "env": {
+    "DROPBOX_ACCESS_TOKEN": {
+      "description": "Access Token provided by Dropbox",
+      "required": true
+    },
+    "NODE_ENV": {
+      "description": "Mode to run application as (development or production)",
+      "required": true,
+      "value": "development"
+    },
+    "JWT_SECRET": {
+      "description": "Secret to sign your JWT tokens",
+      "required": true,
+      "generator": "secret"
+    },
+    "COOKIE_SIGNATURE": {
+      "description": "Secret to sign your cookies",
+      "required": true,
+      "generator": "secret"
+    },
+    "FIREBASE_API_KEY": {
+      "description": "Firebase API key",
+      "required": true
+    },
+    "FIREBASE_AUTH_DOMAIN" : {
+      "description": "Firebase Auth Domain",
+      "required": true
+    },
+    "FIREBASE_DATABASE_URL": {
+      "description": "Firebase Database URL",
+      "required": true
+    },
+    "FIREBASE_PROJECT_ID": {
+      "description": "Firebase Project ID",
+      "required": true
+    },
+    "FIREBASE_STORAGE_BUCKET": {
+      "description": "Firebase Storage Bucket",
+      "required": true
+    },
+    "FIREBASE_MESSAGING_SENDER_ID": {
+      "description": "Firebase Messenging Sender ID",
+      "required": true
+    },
+    "SALT_ROUNDS": {
+      "description": "Hashing password Salt Rounds",
+      "required": true,
+      "value": "10"
+    },
+    "INVITE_CODE": {
+      "description": "Firebase API key",
+      "required": true,
+      "generator": "secret"
+    },
+    "REACT_APP_API_ENDPOINT": {
+      "description": "Firebase API key",
+      "required": true 
+    },
+    "REACT_APP_BRAND": {
+      "description": "Firebase API key",
+      "required": true,
+      "value": "SpaceShare"
+    }
+  }
+}

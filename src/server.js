@@ -7,15 +7,14 @@ const errorhandler = require("errorhandler");
 const bodyParser = require("body-parser");
 const compression = require("compression");
 const expressValidator = require("express-validator");
-const axios = require("axios");
 const { body, query, cookie, validationResult } = require("express-validator/check");
-const { sanitizeQuery } = require("express-validator/filter");
 const firebase = require("firebase");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
 const fileUpload = require("express-fileupload");
+const path = require("path");
 
 const app = express();
 const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
@@ -65,6 +64,13 @@ app.all("*", (request, response, next) => {
   console.log(`${request.method} ${request.originalUrl} hit with: query => ${JSON.stringify(request.query)} body => ${JSON.stringify(request.body)} cookie => ${JSON.stringify(request.cookies)}`);
 
   next();
+});
+
+app.use(express.static(path.join(__dirname, "..", "build"), {maxAge: "1w"}));
+app.get("*", (request, response) => {
+  response.status(OK)
+    .type("html")
+    .sendFile(path.join(__dirname, "..", "build"), "index.html");
 });
 
 const sendJWT = (response, token) => {
