@@ -48,6 +48,13 @@ class BackendService {
     }
     return this.service.put("/user/upload", formData);
   }
+
+  createDirectory(path, directory) {
+    if (path) {
+      return this.service.put("/user/directory", {directory});
+    } 
+    return this.service.put("/user/directory", {path, directory});
+  }
 }
 
 export default BackendService;

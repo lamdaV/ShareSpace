@@ -382,7 +382,17 @@ app.post("/api/user/rename", jwtValidation.concat(renameValidation), (request, r
   });
 });
 
-app.put("/api/user/upload", jwtValidation, (request, response) => {
+const optionalPathValidation = [
+  query("path")
+    .optional()
+    .exists()
+    .withMessage("path query is missing")
+    .isString()
+    .withMessage("path query is not a string")
+    .not().isEmpty()
+    .withMessage("path query is empty")
+];
+app.put("/api/user/upload", jwtValidation.concat(optionalPathValidation), (request, response) => {
   const errors = validationResult(request);
   if (!errors.isEmpty()) {
     return response.status(CLIENT_ERRROR)
@@ -395,10 +405,60 @@ app.put("/api/user/upload", jwtValidation, (request, response) => {
       return clearJWT(response);
     }
     
+    const username = payload.username;
     const filename = request.files.file.name;
-    const path = `${request.body.path}/${filename}` || `/${payload.username}/${filename}`;
+    const bodyPath = request.body.path;
+    let path;
+    if (bodyPath) {
+      if (!bodyPath.startsWith(`/${username}`)) {
+        return clearJWT(response);
+      }
+      path = `${bodyPath}/${filename}`;
+    } else {
+      path = `/${payload.username}/${filename}`;
+    }
     dbx.filesUpload({autorename: true, contents: request.files.file.data, path, mute: true})
-      .then((res) => response.status(OK).send())
+      .then((res) => response.status(OK).send(res))
+      .catch((error) => serverError(response, error));
+  });
+});
+
+const directoryCreateValidation = [
+  body("directory")
+    .exists()
+    .withMessage("missing directory body")
+    .isString()
+    .withMessage("directory is not a string")
+    .not().isEmpty()
+    .withMessage("directory is empty")
+]
+app.put("/api/user/directory", jwtValidation.concat(directoryCreateValidation).concat(optionalPathValidation), (request, response) => {
+  const errors = validationResult(request);
+  if (!errors.isEmpty) {
+    return response.status(CLIENT_ERRROR)
+      .json({errors: errors.status()});
+  }
+  const token = request.cookies.jwt;
+  jwt.verify(token, JWT_SECRET, (error, payload) => {
+    if (error) {
+      return clearJWT(response);
+    }
+    
+    const username = payload.username;
+    const bodyPath = request.body.path;
+    const directory = request.body.directory;
+    let path;
+    if (bodyPath) {
+      if (!bodyPath.startsWith(`/${username}`)) {
+        return clearJWT(response);
+      }
+      path = `${bodyPath}/${directory}`;
+    } else {
+      path = `/${username}/${directory}`;
+    }
+
+    dbx.filesCreateFolderV2({autorename: true, path})
+      .then((res) => response.status(OK).send(res))
       .catch((error) => serverError(response, error));
   });
 });

@@ -8,7 +8,10 @@ import {
   ListGroup,
   ListGroupItem,
   Row,
-  UncontrolledTooltip
+  UncontrolledTooltip,
+  Input,
+  InputGroup,
+  InputGroupAddon
 } from "reactstrap";
 import { Link, Redirect } from "react-router-dom";
 import { saveAs } from "file-saver";
@@ -27,19 +30,24 @@ class User extends Component {
       breadcrumb: [],
       files: [],
       errors: [],
-      toHome: false
-    }
+      toHome: false,
+      directoryName: ""
+    };
 
     this.createErrorMessage = this.createErrorMessage.bind(this);
     this.createBreadCrumb = this.createBreadCrumb.bind(this);
     this.createFilesCard = this.createFilesCard.bind(this);
+    this.createDirectoryCreator = this.createDirectoryCreator.bind(this);
     this.createDropzone = this.createDropzone.bind(this);
 
     this.handleOpen = this.handleOpen.bind(this);
     this.handleDownload = this.handleDownload.bind(this);
     this.handleDelete = this.handleDelete.bind(this);
     this.handleSave = this.handleSave.bind(this);
+    this.handleDirectoryInput = this.handleDirectoryInput.bind(this);
+    this.handleCreateDirectory = this.handleCreateDirectory.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
+    this.handleErrors = this.handleErrors.bind(this);
 
     this.listFiles = this.listFiles.bind(this);
   };
@@ -70,6 +78,24 @@ class User extends Component {
                     handleDelete={this.handleDelete}
                     handleSave={this.handleSave}
                     file={file}/>
+          <br/>
+        </Col>
+      </Row>
+    );
+  }
+
+  createDirectoryCreator() {
+    return (
+      <Row>
+        <Col>
+          <InputGroup>
+            <Input placeholder="directory name" value={this.state.directoryName} onChange={this.handleDirectoryInput}/>
+            <InputGroupAddon addonType="append">
+              <Button onClick={this.handleCreateDirectory} color="success" disabled={this.state.directoryName.length < 1}>
+                <GoPlus/>
+              </Button>
+            </InputGroupAddon>
+          </InputGroup>
           <br/>
         </Col>
       </Row>
@@ -108,12 +134,7 @@ class User extends Component {
   handleDelete(file) {
     this.props.service.delete(file.path_display)
       .then((res) => this.listFiles(file.path_display.substring(0, file.path_display.lastIndexOf("/"))))
-      .catch((error) => {
-        if (error.response) {
-          const errors = error.response.data.errors.map((err) => err.msg);
-          this.setState({errors: errors});
-        }
-      });
+      .catch(this.handleErrors);
   }
 
   handleSave(file, newName) {
@@ -126,12 +147,23 @@ class User extends Component {
         const path = data.metadata.path_display.split("/");
         this.listFiles(path.slice(0, path.length - 1).join("/"))
       })
-      .catch((error) => {
-        if (error.response) {
-          const errors = error.response.data;
-          this.setState({errors: [errors]});
-        }
-      });
+      .catch(this.handleErrors);
+  }
+
+  handleDirectoryInput(event) {
+    event.preventDefault();
+    this.setState({directoryName: event.currentTarget.value});
+  }
+
+  handleCreateDirectory(event) {
+    event.preventDefault();
+    const path = qs.parse(this.props.location.search).path;
+    this.props.service.createDirectory(path, this.state.directoryName)
+      .then((res) => {
+        this.setState({directoryName: ""});
+        this.listFiles(path);
+      })
+      .catch(this.handleErrors);
   }
 
   handleDrop(files) {
@@ -139,12 +171,7 @@ class User extends Component {
     files.forEach((file) => {
       this.props.service.upload(file, path)
         .then((res) => this.listFiles(path))
-        .catch((error) => {
-          if (error.response) {
-            const errors = error.response.data.errors.map((err) => err.msg);
-            this.setState({errors});
-          }
-        });
+        .catch(this.handleErrors);
     });
   }
 
@@ -152,12 +179,14 @@ class User extends Component {
     this.props.service.listFiles(path)
       .then((res) => res.data)
       .then((data) => this.setState({errors: [], breadcrumb: data.breadcrumb, files: data.files}))
-      .catch((error) => {
-        if (error.response) {
-          const errors = error.response.data.errors.map((err) => err.msg);
-          this.setState({errors});
-        }
-      });
+      .catch(this.handleErrors);
+  }
+
+  handleErrors(error) {
+    if (error.response) {
+      const errors = error.response.data.errors.map((err) => err.msg);
+      this.setState({errors});
+    }
   }
 
   componentDidMount() {
@@ -223,6 +252,7 @@ class User extends Component {
       files = this.state.files.map(this.createFilesCard);
     }
 
+    let directoryCreator = this.createDirectoryCreator();
     let dropzone = this.createDropzone();
 
     return (
@@ -230,6 +260,7 @@ class User extends Component {
         {messages}
         {breadcrumb}
         {files}
+        {directoryCreator}
         {dropzone}
       </Container>
     );
