@@ -93,7 +93,18 @@ const authValidation = [
     .not().isEmpty()
     .withMessage("password is empty")
 ];
-app.post("/api/register", authValidation, (request, response) => {
+const inviteValidation = [
+  body("invite")
+    .exists()
+    .withMessage("Missing invite")
+    .isString()
+    .withMessage("invite is not a string")
+    .not().isEmpty()
+    .withMessage("invite is empty")
+    .equals(process.env.INVITE_CODE)
+    .withMessage("Invalid invite")
+]
+app.put("/api/register", authValidation.concat(inviteValidation), (request, response) => {
   const errors = validationResult(request);
   if (!errors.isEmpty()) {
     return response.status(CLIENT_ERRROR)

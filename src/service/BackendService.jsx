@@ -9,8 +9,8 @@ class BackendService {
     return this.service.get("/verify");
   }
 
-  register(username, password) {
-    return this.service.post("/register", {username, password});
+  register(username, password, invite) {
+    return this.service.put("/register", {username, password, invite});
   }
 
   login(username, password) {

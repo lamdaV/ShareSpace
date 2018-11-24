@@ -10,6 +10,7 @@ class Register extends Component {
       username: "",
       password1: "",
       password2: "",
+      invite: "",
       errors: [],
       registerEnabled: false,
       toUserPage: false
@@ -18,6 +19,8 @@ class Register extends Component {
     this.onUsernameChange = this.onUsernameChange.bind(this);
     this.onPassword1Change = this.onPassword1Change.bind(this);
     this.onPassword2Change = this.onPassword2Change.bind(this);
+    this.onInviteChange = this.onInviteChange.bind(this);
+
     this.onRegister = this.onRegister.bind(this);
   }
 
@@ -26,7 +29,8 @@ class Register extends Component {
     const username = event.currentTarget.value;
     const password1 = this.state.password1;
     const password2 = this.state.password2;
-    this.updateState(username, password1, password2);
+    const invite = this.state.invite;
+    this.updateState(username, password1, password2, invite);
   }
 
   onPassword1Change(event) {
@@ -34,7 +38,8 @@ class Register extends Component {
     const username = this.state.username;
     const password1 = event.currentTarget.value;
     const password2 = this.state.password2;
-    this.updateState(username, password1, password2);
+    const invite = this.state.invite;
+    this.updateState(username, password1, password2, invite);
   }
 
   onPassword2Change(event) {
@@ -42,10 +47,20 @@ class Register extends Component {
     const username = this.state.username;
     const password1 = this.state.password1;
     const password2 = event.currentTarget.value;
-    this.updateState(username, password1, password2);
+    const invite = this.state.invite;
+    this.updateState(username, password1, password2, invite);
   }
 
-  updateState(username, password1, password2) {
+  onInviteChange(event) {
+    event.preventDefault();
+    const username = this.state.username;
+    const password1 = this.state.password1;
+    const password2 = this.state.password2
+    const invite = event.currentTarget.value;
+    this.updateState(username, password1, password2, invite);
+  }
+
+  updateState(username, password1, password2, invite) {
     const errors = [];
     if (username.length === 0) {
       errors.push("username must be non-empty");
@@ -67,13 +82,17 @@ class Register extends Component {
       errors.push("passwords do not match");
     }
 
+    if (invite.length === 0) {
+      errors.push("invite must not be empty");
+    }
+
     const registerEnabled = errors.length === 0;
-    this.setState({username, password1, password2, errors, registerEnabled});
+    this.setState({username, password1, password2, errors, registerEnabled, invite});
   }
 
   onRegister(event) {
     event.preventDefault();
-    this.props.service.register(this.state.username, this.state.password1)
+    this.props.service.register(this.state.username, this.state.password1, this.state.invite)
       .then((res) => {
         this.setState({errors: [], toUserPage: true});
         this.props.store.publish("auth", true);
@@ -105,7 +124,7 @@ class Register extends Component {
           {errorMessages}
           <InputGroup>
             <InputGroupAddon addonType="prepend">username</InputGroupAddon>
-            <Input required type="username" value={this.state.username} onChange={this.onUsernameChange}/>
+            <Input required type="text" value={this.state.username} onChange={this.onUsernameChange}/>
           </InputGroup>
           <br/>
           <InputGroup>
@@ -116,6 +135,11 @@ class Register extends Component {
           <InputGroup>
             <InputGroupAddon addonType="prepend">password</InputGroupAddon>
             <Input required type="password" value={this.state.password2} onChange={this.onPassword2Change}/>
+          </InputGroup>
+          <br/>
+          <InputGroup>
+            <InputGroupAddon addonType="prepend">invite</InputGroupAddon>
+            <Input required type="text" value={this.state.invite} onChange={this.onInviteChange}/>
           </InputGroup>
           <br/>
           <Button color="success" block onClick={this.onRegister} disabled={!this.state.registerEnabled}>Register</Button>

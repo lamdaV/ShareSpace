@@ -1,44 +1,64 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# ShareSpace
+Sharing unused Dropbox space for family and friends.
 
-## Available Scripts
+## Motivations
+I use Dropbox as my primary Cloud storage prvoider to store files and
+documents for easy access across multiple machines. Unfortunately, 
+I only use a mere fraction of the space given to me with the Plus package.
 
-In the project directory, you can run:
+I wanted a way to share access to my Dropbox space with friends and family. 
+Dropbox, to my knowledge, offers two key features for non-business users to 
+accomplish something similar to what I wanted: Share Folders or Link with Password.
 
-### `npm start`
+Share Folders are convenient as it allows two or more parties to collaborate;
+however, Share Folders consumes all parties space. That is, if a folder
+is `500 MB` and there are `3` parties, each of the members must have `500 MB`
+of free space available with their Dropbox subscription. In this case,
+I wanted a way to share my Dropbox service to friends and family without
+having them to create an account or consume space on their Dropbox.
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Link with Password is an alternative as it allows people without Dropbox
+accounts to access to files I have uploaded. The password does provide
+some gating on who can and cannot see the files, it does not allow
+someone with the link to upload a file. Furthermore, the password is 
+owner driven rather than user driven. Perhaps there is some way combining this
+approach with File Request to upload.
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+## Description
+ShareSpace is a service that allows other trusted individuals to use
+your Dropbox space. A user can register for an account with registration gated
+by an `invite` code. A user can upload, rename, delete, or download files.
 
-### `npm test`
+## Features
+- [x] User sign in
+- [x] User registration
+- [x] User session (JWT)
+- [x] Upload files
+- [ ] Upload folders
+- [x] Delete files
+- [ ] Delete folders
+- [x] Rename files
+- [x] Rename folders
+- [x] Download files
+- [ ] Download folders (?)
+- [x] Invite code gating
+- [x] Connect to a User database
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Environment Variables
+```
+DROPBOX_ACCESS_TOKEN=
+NODE_ENV=
+JWT_SECRET=SECRET_TO_SIGN_JWT
+COOKIE_SIGNATURE=SECRET_TO_SIGN_COOKIES
+FIREBASE_API_KEY=
+FIREBASE_AUTH_DOMAIN=
+FIREBASE_DATABASE_URL=
+FIREBASE_PROJECT_ID=
+FIREBASE_STORAGE_BUCKET=
+FIREBASE_MESSAGING_SENDER_ID=
+SALT_ROUNDS=ROUNDS_TO_SALT_PASSWORD_BEFORE_DATABASE_INSERTION
+INVITE_CODE=REGISTRATION_GATE_INVITE_CODE
 
-### `npm run build`
-
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+REACT_APP_API_ENDPOINT=HOST_OF_API (must end with "/api")
+REACT_APP_BRAND=BRANDING_IN_NAVBAR
+```
