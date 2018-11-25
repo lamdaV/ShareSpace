@@ -1,5 +1,6 @@
 {
   "name": "ShareSpace",
+  "homepage": "https://sharespace-lamdav.herokuapp.com/",
   "description": "Share unused Dropbox Space",
   "repository": "https://github.com/lamdaV/ShareSpace",
   "buildpacks": [
@@ -67,7 +68,7 @@
       "generator": "secret"
     },
     "REACT_APP_API_ENDPOINT": {
-      "description": "Endpoint to API server ending with '/api'",
+      "description": "Endpoint to API server",
       "required": true 
     },
     "REACT_APP_BRAND": {
